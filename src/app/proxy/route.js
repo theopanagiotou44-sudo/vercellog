@@ -43,7 +43,7 @@ export async function GET(request) {
       })
     }).catch(() => {});
 
-    // ✅ Return a NextResponse, not raw text
+    // ✅ Return a NextResponse with the HTML content
     return new NextResponse(content, {
       status: response.status,
       headers: {
@@ -51,11 +51,12 @@ export async function GET(request) {
       }
     });
   } catch (error) {
+    console.error("Proxy Error:", error);
     return new NextResponse("Error", { status: 500 });
   }
 }
 
-// ✅ Critical: Disable prerendering
+// ✅ Disable prerendering to avoid build errors
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
