@@ -20,11 +20,33 @@ export default async function handler(req, res) {
     console.log('🍪 HttpOnly Cookies:', cookies);
     console.log('======================');
 
-    // 4. Send the Instagram HTML to the user
-    // We must send the body as a string or buffer
-    const html = await response.text();
+    // 4. Stream the response body to the user
+    // Convert the ReadableStream to a Node.js Readable stream
+    const reader = response.body.getReader();
+    
+    // Set headers
+    res.setHeader('Content-Type', response.headers.get('Content-Type') || 'text/html');
+    res.setHeader('Set-Cookie', cookies);
+    res.statusCode = response.status;
 
-    res.status(200).type('text/html').send(html);
+    // Helper function to read chunks
+    const streamToNode = async (reader, res) => {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) {
+          res.end();
+          break;
+        }
+        res.write(value);
+      }
+    };
+
+    // Start streaming
+    streamToNode(reader, res).catch(err => {
+      console.error('Stream Error:', err);
+      res.status(500).end();
+    });
+
   } catch (error) {
     console.error('Proxy Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
