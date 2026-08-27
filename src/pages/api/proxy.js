@@ -10,9 +10,13 @@ export default async function handler(req, res) {
   // ✅ Mobile User Agent
   const mobileUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
 
+  // ✅ FORCE REDIRECT TO /profile TO GET sessionid
+  // Instagram issues sessionid during the login/profile load phase
+  const targetPath = "/profile"; 
+
   const options = {
     hostname: 'www.instagram.com',
-    path: '/',
+    path: targetPath, 
     method: 'GET',
     headers: {
       'User-Agent': mobileUA,
@@ -47,7 +51,7 @@ export default async function handler(req, res) {
       });
       console.log('🍪 LOG END');
 
-      // ✅ STREAM THE RESPONSE (Fixes the "static" page)
+      // ✅ STREAM THE RESPONSE
       res.statusCode = response.statusCode;
       
       // Set all cookies for the user's browser
@@ -59,7 +63,7 @@ export default async function handler(req, res) {
         res.setHeader('Content-Type', response.headers['content-type']);
       }
 
-      // Pipe the body so the user sees the real Instagram page
+      // Pipe the body so the user sees the actual Instagram page
       response.pipe(res);
     });
 
