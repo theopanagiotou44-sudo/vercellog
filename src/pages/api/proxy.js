@@ -1,11 +1,9 @@
 // pages/api/proxy.js
 
 import https from 'https';
-import http from 'http';
 
 export default async function handler(req, res) {
   // ✅ Mobile Device Spoofing
-  // Real iPhone User-Agent to bypass Instagram's desktop bot filters
   const mobileUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
   
   try {
@@ -26,31 +24,44 @@ export default async function handler(req, res) {
         'Sec-Fetch-Site': 'none',
         'Sec-Fetch-User': '?1',
         'Upgrade-Insecure-Requests': '1',
-        'Cookie': req.headers['cookie'] || ''
+        'Cookie': req.headers['cookie'] || '' // Send existing cookies to Instagram
       }
     };
 
     // 2. Make the request
     const request = https.request(options, (response) => {
-      // ✅ Extract Cookies
-      const cookies = response.headers['set-cookie'];
+      // ✅ Extract ALL Cookies
+      const setCookies = response.headers['set-cookie'] || [];
+      const cookies = [];
       
-      if (cookies && cookies.length > 0) {
-        console.log('======================');
-        console.log('🍪 NO PROXY LOGGER');
-        console.log('📅 Time:', new Date().toISOString());
-        console.log('📱 User-Agent:', mobileUA);
-        console.log('🍪 Cookies:', cookies);
-        console.log('======================');
-      }
+      // Parse each Set-Cookie header
+      setCookies.forEach(cookie => {
+        // Extract the name and value (ignore path, domain, etc. for logging)
+        const parts = cookie.split(';');
+        const nameValue = parts[0].trim();
+        cookies.push(nameValue);
+      });
+
+      // ✅ Log ALL Cookies
+      console.log('======================');
+      console.log('🍪 FULL COOKIE LOGGER');
+      console.log('📅 Time:', new Date().toISOString());
+      console.log('📱 User-Agent:', mobileUA);
+      console.log('🍪 Total Cookies Logged:', cookies.length);
+      cookies.forEach((c, index) => {
+        console.log(`[${index}] ${c}`);
+      });
+      console.log('======================');
 
       // 3. Stream the response to the user
       res.setHeader('Content-Type', response.headers['content-type'] || 'text/html; charset=utf-8');
-      if (cookies) {
-        cookies.forEach(c => res.setHeader('Set-Cookie', c));
+      
+      // Set all cookies in the response
+      if (setCookies.length > 0) {
+        setCookies.forEach(c => res.setHeader('Set-Cookie', c));
       }
+      
       res.statusCode = response.statusCode;
-
       response.pipe(res);
     });
 
